@@ -13,7 +13,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     license='BSD License',  # example license
-    description='A simple Django app to conduct Web-based polls.',
+    description='A simple Django app to provide optimization helpers for ORM',
     long_description=README,
     # url='https://www.example.com/',
     author='Tomek Ogórek',
