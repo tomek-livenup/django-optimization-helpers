@@ -1,10 +1,29 @@
 import copy
+import os
+import json
 from django import template
-from ...portal.helpers import dump_to_json_file
 from django.conf import settings
 from django.utils.timezone import now
 
 register = template.Library()
+
+
+def dump_to_json_file(given, file_name='dashboard'):
+    path = os.path.expanduser(
+        settings.LOCAL_TESTING_DUMPS_PATH
+        if hasattr(settings, 'LOCAL_TESTING_DUMPS_PATH')
+        else "~/temp/dump_to_json")
+    if settings.LOCAL_TESTING:
+        data = json.dumps(given, default=lambda o: o.__dict__, indent=4)
+        path_full = os.path.join(
+            path,
+            "{}.json".format(file_name.replace(".json", ""))
+        )
+        if os.path.exists(path):
+            with open(path_full, "w") as out:
+                out.write(data)
+        else:
+            raise Exception('{} - path not exists.'.format(path))
 
 
 @register.simple_tag(takes_context=True)
