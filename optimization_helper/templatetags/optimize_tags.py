@@ -276,7 +276,8 @@ def optimize(template_name, for_item, context, queryset=None):
                         )
                     pass
             else:
-                raise Exception(str(model), key)
+                # ---
+                # raise Exception(str(model), key)
                 result['other']["c"].append(
                     (
                         str(type(model)), relation
