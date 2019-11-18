@@ -265,9 +265,17 @@ def optimize(template_name, for_item, context, queryset=None):
                             result["relations_to_prefetch"].append(relation)
                         else:
                             result["relations_to_select"].append(relation)
+                elif hasattr(field, "_optimize_related") and field._optimize_related:
+                    to_select = field._optimize_related.get("select_related", "").split('__')
+                    to_prefetch = field._optimize_related.get("select_prefetch", "").split('__')
+                    if to_select and to_select[0]:
+                        result["relations_to_select"].append(to_select)
+                    if to_prefetch and to_prefetch[0]:
+                        result["relations_to_prefetch"].append(to_prefetch)
                 else:
                     if hasattr(field, "__call__"):
                         result["relations_unknown"].append(relation)
+                        raise Exception(field)
                     else:
                         result['other']["b"].append(
                             (
@@ -335,6 +343,7 @@ def optimize(template_name, for_item, context, queryset=None):
             queryset, confirmed_relations=relations["relations_to_prefetch"], prefetch=True)
         dump_to_json_file(
             dict(
+                date=now().isoformat(),
                 queryset=str(queryset),
                 model=str(model),
                 fornode_var=fornode_var,
@@ -384,5 +393,7 @@ def optimize(template_name, for_item, context, queryset=None):
                 - I have main model Notification which match variable 'notification', so I need to method which
                   will check if children in lookups_map are relations or not
                 - If "id" is one and only children we need to generate info "maybe just use _id"
+            2019-10-07:
+                - lookups from if-s
     """
     # raise Exception(conditions)
