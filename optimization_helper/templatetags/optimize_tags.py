@@ -171,8 +171,24 @@ def optimize(template_name, for_item, context, queryset=None):
                 globals()["general_result"] = condition_and_children
                 # dump_to_json_file(condition_and_children, 'condition_and_children')
                 result["conditions"].append(condition_and_children)
-            elif isinstance(node, ForNode):
-                raise Exception("Another ForNode: TODO")
+            elif isinstance(node, ForNode) and False:
+                # continue
+                raise Exception('dfakfdsak')
+
+                # raise Exception("Another ForNode: TODO")
+                # nodes = node.nodelist_loop if hasattr(node, "nodelist_loop") else None
+                # raise Exception(nodes[1])
+                raise Exception(
+                    node.nodelist_loop
+                )
+                condition_and_children = dict(
+                    condition_text="", condition_object=None, children=second_step(node, level, conditions_for_level)
+                )
+                globals()["general_result"] = condition_and_children
+                # dump_to_json_file(condition_and_children, 'condition_and_children')
+                result["conditions"].append(condition_and_children)
+                # raise Exception(nodes2)
+                # raise Exception("Another ForNode: TODO")
             elif isinstance(node, IfNode):
                 for condition, nodes3 in node.conditions_nodelists:
                     if condition:
@@ -204,25 +220,25 @@ def optimize(template_name, for_item, context, queryset=None):
             elif isinstance(node, (TextNode, LoadNode)):
                 pass
             else:
-
-                def lookups_from_filterexpression(node):
-                    if hasattr(node, "filter_expression"):
-                        lookups.append(node.filter_expression.var.lookups)
-                        for nfilter in node.filter_expression.filters:
-                            for e in nfilter[1]:
-                                if hasattr(e[1], "lookups"):
-                                    lookups.append(e[1].lookups)
-
                 result["other_nodes"].append(str(node))
-                lookups_from_filterexpression(node)
+                lookups_from_filterexpression(lookups, node)
                 if hasattr(node, "args"):
                     for arg in node.args:
-                        lookups_from_filterexpression(arg)
+                        lookups_from_filterexpression(lookups, arg)
 
                 show_me_item_with_dots.append((len(show_me_item_with_dots), node))
                 # raise Exception('fsdadsk')
             dump_to_json_file(result, "last_one_maybe")
         return result
+
+    def lookups_from_filterexpression(lookups, node):
+        if hasattr(node, "filter_expression") or hasattr(node, "sequence"):
+            filter_expression = node.filter_expression if not hasattr(node, "sequence") else node.sequence
+            lookups.append(filter_expression.var.lookups)
+            for nfilter in filter_expression.filters:
+                for e in nfilter[1]:
+                    if hasattr(e[1], "lookups"):
+                        lookups.append(e[1].lookups)
 
     def get_object_from_queryset(queryset):
         if isinstance(queryset, QuerySet):
