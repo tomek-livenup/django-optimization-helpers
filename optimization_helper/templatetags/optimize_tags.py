@@ -172,6 +172,12 @@ def optimize(template_name, for_item, context, queryset=None):
                 # dump_to_json_file(condition_and_children, 'condition_and_children')
                 result["conditions"].append(condition_and_children)
             elif isinstance(node, ForNode):
+                if hasattr(node, "sequence"):
+                    a = node.loopvars
+                    b = node.sequence.var.lookups
+                    sequences.append(
+                        (a, b)
+                    )
                 lookups_from_filterexpression(lookups, node)
                 if hasattr(node, "args"):
                     raise Exception("Sahara - we didn t checked that code will be work here")
