@@ -266,17 +266,23 @@ def optimize(template_name, for_item, context, queryset=None):
         return lookups_map
 
     def merge_lookups_using_sequences(lookups):
-        # TODO not implemented exception when e[0][1]
-        # TODO eeee to real vairable and the rest also
-        eeee = {e[0][0 if len(e[0]) == 1 else None]: e[1] for e in sequences}
+        def merge_lookup(lookup, keys):
+            lookup_before = lookup
+            first = lookup[0]
+            if first in keys:
+                lookup = tuple(
+                    list(sequences_as_dict[first]) + list(lookup)[1:]
+                )
+                keys.remove(lookup_before[0])
+                if keys:
+                    lookup = merge_lookup(lookup, keys)
+            return lookup
+
+        sequences_as_dict = {seq[0][0 if len(seq[0]) == 1 else None]: seq[1] for seq in sequences}
         new = []
         for lookup in lookups:
-            if lookup[0] in eeee.keys():
-                uu = list(lookup)
-                uu2 = list(eeee[lookup[0]]) + uu[1:]
-                lookup = tuple(uu2)
+            lookup = merge_lookup(lookup, list(sequences_as_dict.keys()))
             new.append(lookup)
-
         return new
 
     def get_relations(lookups_map, model, variable):
