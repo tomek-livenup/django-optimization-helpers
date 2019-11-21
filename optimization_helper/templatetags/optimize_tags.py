@@ -171,24 +171,20 @@ def optimize(template_name, for_item, context, queryset=None):
                 globals()["general_result"] = condition_and_children
                 # dump_to_json_file(condition_and_children, 'condition_and_children')
                 result["conditions"].append(condition_and_children)
-            elif isinstance(node, ForNode) and False:
-                # continue
-                raise Exception('dfakfdsak')
-
-                # raise Exception("Another ForNode: TODO")
-                # nodes = node.nodelist_loop if hasattr(node, "nodelist_loop") else None
-                # raise Exception(nodes[1])
-                raise Exception(
-                    node.nodelist_loop
-                )
+            elif isinstance(node, ForNode):
+                lookups_from_filterexpression(lookups, node)
+                if hasattr(node, "args"):
+                    raise Exception("Sahara - we didn t checked that code will be work here")
+                    for arg in node.args:
+                        lookups_from_filterexpression(lookups, arg)
                 condition_and_children = dict(
-                    condition_text="", condition_object=None, children=second_step(node, level, conditions_for_level)
+                    condition_text="",
+                    condition_object=None,
+                    children=second_step(node.nodelist_loop, level, conditions_for_level)
                 )
                 globals()["general_result"] = condition_and_children
                 # dump_to_json_file(condition_and_children, 'condition_and_children')
                 result["conditions"].append(condition_and_children)
-                # raise Exception(nodes2)
-                # raise Exception("Another ForNode: TODO")
             elif isinstance(node, IfNode):
                 for condition, nodes3 in node.conditions_nodelists:
                     if condition:
@@ -206,6 +202,12 @@ def optimize(template_name, for_item, context, queryset=None):
                     condition_block_propagation = (
                         True if (bool_instead_of_render(node, context) if condition else "eeee") is False else None
                     )
+                    # if level >= 11:
+                    if condition_block_propagation:
+                        # TODO remove that if after changes
+                        print("PROPAGATION_BLOCKING....BLOCKED!!!! ;)")
+                        condition_block_propagation = False
+                        # raise Exception(node)
                     if not condition_block_propagation:
                         condition_and_children = dict(
                             condition_text=condition_as_text(condition),
@@ -222,6 +224,7 @@ def optimize(template_name, for_item, context, queryset=None):
             else:
                 result["other_nodes"].append(str(node))
                 lookups_from_filterexpression(lookups, node)
+                # TODO we need to sequences belove lookups
                 if hasattr(node, "args"):
                     for arg in node.args:
                         lookups_from_filterexpression(lookups, arg)
@@ -256,6 +259,20 @@ def optimize(template_name, for_item, context, queryset=None):
                 current = current[lookup_item]
         return lookups_map
 
+    def merge_lookups_using_sequences(lookups):
+        # TODO not implemented exception when e[0][1]
+        # TODO eeee to real vairable and the rest also
+        eeee = {e[0][0 if len(e[0]) == 1 else None]: e[1] for e in sequences}
+        new = []
+        for lookup in lookups:
+            if lookup[0] in eeee.keys():
+                uu = list(lookup)
+                uu2 = list(eeee[lookup[0]]) + uu[1:]
+                lookup = tuple(uu2)
+            new.append(lookup)
+
+        return new
+
     def get_relations(lookups_map, model, variable):
         result = dict(
             relations_to_select=[],
@@ -271,7 +288,7 @@ def optimize(template_name, for_item, context, queryset=None):
             if hasattr(model, key):
                 field = getattr(model, key)
                 if hasattr(field, "field") and hasattr(field.field, "related_model") and field.field.related_model:
-                    related_model = field.field.related_model
+                    related_model = field.rel.related_model if hasattr(field, "rel") else field.field.related_model
                     prefetch = prefetch or hasattr(field, "rel")
 
                     for key2, value2 in glu.items():
@@ -299,9 +316,12 @@ def optimize(template_name, for_item, context, queryset=None):
                             )
                         )
                     pass
+            elif key == "all":
+                del relation[-1]
+                for key2, value2 in glu.items():
+                    get_1relation(model, key2, value2, relation, prefetch=prefetch)
             else:
                 # ---
-                # raise Exception(str(model), key)
                 result['other']["c"].append(
                     (
                         str(type(model)), relation
@@ -341,6 +361,7 @@ def optimize(template_name, for_item, context, queryset=None):
         else:
             raise Exception("Many loop vars, how??")
         lookups = []
+        sequences = []
         show_me_item_with_dots = []
         select_related_list = []
         prefetch_related_list = []
@@ -350,8 +371,11 @@ def optimize(template_name, for_item, context, queryset=None):
         second_step(fornode, level=0, conditions_for_level=[])
         dump_to_json_file(globals()["general_result"])
 
-        lookups = list(filter(lambda ls: ls[0] == fornode_var, lookups))
+        lookups_raw = lookups
+        # lookups = list(filter(lambda ls: ls[0] == fornode_var, lookups))
+        lookups = merge_lookups_using_sequences(lookups)
         lookups_map = get_lookups_map(lookups)
+        # TODO check check_propagation var
         relations = get_relations(lookups_map=lookups_map, model=model, variable=fornode_var)
         queryset = selectprefetch_related(
             queryset, confirmed_relations=relations["relations_to_select"])
@@ -363,7 +387,8 @@ def optimize(template_name, for_item, context, queryset=None):
                 queryset=str(queryset),
                 model=str(model),
                 fornode_var=fornode_var,
-                lookups_list=lookups,
+                lookups_list=lookups_raw,
+                sequences=sequences,
                 lookups_map=lookups_map,
                 relations=relations,
                 select_related_list=select_related_list,
