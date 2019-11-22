@@ -290,6 +290,8 @@ def optimize(template_name, for_item, context, queryset=None):
             relations_to_select=[],
             relations_to_prefetch=[],
             relations_unknown=[],  # i.e. functions
+            annotates_to_annotate=[],
+            annotates_to_ommit=[],
             other=dict(a=[], b=[], c=[]),
             only_id_and_eee=[]
         )
@@ -297,6 +299,7 @@ def optimize(template_name, for_item, context, queryset=None):
         def get_1relation(model, key, glu, relation, prefetch=False):
             relation = relation.copy()
             relation.append(key)
+
             if hasattr(model, key):
                 field = getattr(model, key)
                 if hasattr(field, "field") and hasattr(field.field, "related_model") and field.field.related_model:
@@ -312,11 +315,17 @@ def optimize(template_name, for_item, context, queryset=None):
                             result["relations_to_select"].append(relation)
                 elif hasattr(field, "_optimize_related") and field._optimize_related:
                     to_select = field._optimize_related.get("select_related", "").split('__')
-                    to_prefetch = field._optimize_related.get("select_prefetch", "").split('__')
+                    to_prefetch = field._optimize_related.get("prefetch_related", "").split('__')
+                    to_annotate = field._optimize_related.get("annotate", "").split(',')
                     if to_select and to_select[0]:
                         result["relations_to_select"].append(to_select)
                     if to_prefetch and to_prefetch[0]:
                         result["relations_to_prefetch"].append(to_prefetch)
+                    if to_annotate:
+                        for annotate in to_annotate:
+                            result["annotates_{}".format('to_annotate' if len(relation) == 1 else "to_ommit")].append(
+                                annotate
+                            )
                 else:
                     if hasattr(field, "__call__"):
                         result["relations_unknown"].append(relation)
@@ -360,6 +369,12 @@ def optimize(template_name, for_item, context, queryset=None):
         queryset.optimized = True
         return queryset
 
+    def annotates(queryset):
+        for annotate in relations["annotates_to_annotate"]:
+            if hasattr(model, annotate):
+                queryset = getattr(model, annotate)(queryset)
+        return queryset
+
     from django.db.models.query import QuerySet
 
     fornode = look_for_fornode(nodelist=get_nodes_from_template_name(template_name))
@@ -393,6 +408,7 @@ def optimize(template_name, for_item, context, queryset=None):
             queryset, confirmed_relations=relations["relations_to_select"])
         queryset = selectprefetch_related(
             queryset, confirmed_relations=relations["relations_to_prefetch"], prefetch=True)
+        queryset = annotates(queryset)
         dump_to_json_file(
             dict(
                 date=now().isoformat(),
