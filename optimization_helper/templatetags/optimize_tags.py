@@ -8,22 +8,18 @@ from django.utils.timezone import now
 register = template.Library()
 
 
-def dump_to_json_file(given, file_name='dashboard'):
+def dump_to_json_file(given, file_name="dashboard"):
     path = os.path.expanduser(
-        settings.LOCAL_TESTING_DUMPS_PATH
-        if hasattr(settings, 'LOCAL_TESTING_DUMPS_PATH')
-        else "~/temp/dump_to_json")
+        settings.LOCAL_TESTING_DUMPS_PATH if hasattr(settings, "LOCAL_TESTING_DUMPS_PATH") else "~/temp/dump_to_json"
+    )
     if settings.LOCAL_TESTING:
         data = json.dumps(given, default=lambda o: o.__dict__, indent=4)
-        path_full = os.path.join(
-            path,
-            "{}.json".format(file_name.replace(".json", ""))
-        )
+        path_full = os.path.join(path, "{}.json".format(file_name.replace(".json", "")))
         if os.path.exists(path):
             with open(path_full, "w") as out:
                 out.write(data)
         else:
-            raise Exception('{} - path not exists.'.format(path))
+            raise Exception("{} - path not exists.".format(path))
 
 
 @register.simple_tag(takes_context=True)
@@ -175,9 +171,7 @@ def optimize(template_name, for_item, context, queryset=None):
                 if hasattr(node, "sequence"):
                     a = node.loopvars
                     b = node.sequence.var.lookups
-                    sequences.append(
-                        (a, b)
-                    )
+                    sequences.append((a, b))
                 lookups_from_filterexpression(lookups, node)
                 if hasattr(node, "args"):
                     raise Exception("Sahara - we didn t checked that code will be work here")
@@ -186,7 +180,7 @@ def optimize(template_name, for_item, context, queryset=None):
                 condition_and_children = dict(
                     condition_text="",
                     condition_object=None,
-                    children=second_step(node.nodelist_loop, level, conditions_for_level)
+                    children=second_step(node.nodelist_loop, level, conditions_for_level),
                 )
                 globals()["general_result"] = condition_and_children
                 # dump_to_json_file(condition_and_children, 'condition_and_children')
@@ -270,9 +264,7 @@ def optimize(template_name, for_item, context, queryset=None):
             lookup_before = lookup
             first = lookup[0]
             if first in keys:
-                lookup = tuple(
-                    list(sequences_as_dict[first]) + list(lookup)[1:]
-                )
+                lookup = tuple(list(sequences_as_dict[first]) + list(lookup)[1:])
                 keys.remove(lookup_before[0])
                 if keys:
                     lookup = merge_lookup(lookup, keys)
@@ -305,7 +297,8 @@ def optimize(template_name, for_item, context, queryset=None):
             field_field__related_model = field.field.related_model
             if field_rel__related_model and field_field__related_model:
                 related_model = (
-                    field_field__related_model if field_rel__related_model is model_above else field_rel__related_model)
+                    field_field__related_model if field_rel__related_model is model_above else field_rel__related_model
+                )
             else:
                 related_model = field_rel__related_model or field_field__related_model
 
@@ -329,16 +322,16 @@ def optimize(template_name, for_item, context, queryset=None):
                         else:
                             result["relations_to_select"].append(relation)
                 elif hasattr(field, "_optimize_related") and field._optimize_related:
-                    to_select = field._optimize_related.get("select_related", "").split('__')
-                    to_prefetch = field._optimize_related.get("prefetch_related", "").split('__')
-                    to_annotate = field._optimize_related.get("annotate", "").split(',')
+                    to_select = field._optimize_related.get("select_related", "").split("__")
+                    to_prefetch = field._optimize_related.get("prefetch_related", "").split("__")
+                    to_annotate = field._optimize_related.get("annotate", "").split(",")
                     if to_select and to_select[0]:
                         result["relations_to_select"].append(to_select)
                     if to_prefetch and to_prefetch[0]:
                         result["relations_to_prefetch"].append(to_prefetch)
                     if to_annotate:
                         for annotate in to_annotate:
-                            result["annotates_{}".format('to_annotate' if len(relation) == 1 else "to_ommit")].append(
+                            result["annotates_{}".format("to_annotate" if len(relation) == 1 else "to_ommit")].append(
                                 annotate
                             )
                 else:
@@ -346,11 +339,7 @@ def optimize(template_name, for_item, context, queryset=None):
                         result["relations_unknown"].append(relation)
                         # raise Exception(field)
                     else:
-                        result['other']["b"].append(
-                            (
-                                str(type(field)), relation
-                            )
-                        )
+                        result["other"]["b"].append((str(type(field)), relation))
                     pass
             elif key == "all":
                 del relation[-1]
@@ -358,17 +347,13 @@ def optimize(template_name, for_item, context, queryset=None):
                     get_1relation(model, key2, value2, relation, prefetch=prefetch)
             else:
                 # ---
-                result['other']["c"].append(
-                    (
-                        str(type(model)), relation
-                    )
-                )
+                result["other"]["c"].append((str(type(model)), relation))
 
         for lookup, lookups_2 in lookups_map.items():
             dump_to_json_file(lookups_2, "lookups_2")
             for key, value in lookups_2.items():
                 get_1relation(model, key, value, [])
-        dump_to_json_file(result, 'get_relations')
+        dump_to_json_file(result, "get_relations")
         return result
 
     def selectprefetch_related(queryset, confirmed_relations, prefetch=False):
@@ -419,10 +404,10 @@ def optimize(template_name, for_item, context, queryset=None):
         lookups_map = get_lookups_map(lookups)
         # TODO check check_propagation var
         relations = get_relations(lookups_map=lookups_map, model=model, variable=fornode_var)
+        queryset = selectprefetch_related(queryset, confirmed_relations=relations["relations_to_select"])
         queryset = selectprefetch_related(
-            queryset, confirmed_relations=relations["relations_to_select"])
-        queryset = selectprefetch_related(
-            queryset, confirmed_relations=relations["relations_to_prefetch"], prefetch=True)
+            queryset, confirmed_relations=relations["relations_to_prefetch"], prefetch=True
+        )
         queryset = annotates(queryset)
         dump_to_json_file(
             dict(
@@ -444,7 +429,7 @@ def optimize(template_name, for_item, context, queryset=None):
         # raise Exception(globals()['general_result'])
         return queryset
     else:
-        raise Exception('eee')
+        raise Exception("eee")
     return queryset
     """
     what I need to:
