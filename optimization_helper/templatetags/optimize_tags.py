@@ -293,8 +293,23 @@ def optimize(template_name, for_item, context, queryset=None):
             annotates_to_annotate=[],
             annotates_to_ommit=[],
             other=dict(a=[], b=[], c=[]),
-            only_id_and_eee=[]
+            only_id_and_eee=[],
         )
+
+        def choose_relation_from_related_models(field, model_above):
+            """
+            we need to choose which related_model from "dostępny" is what we need to use
+            """
+            related_model = field.rel.related_model if hasattr(field, "rel") else field.field.related_model
+            field_rel__related_model = field.rel.related_model if hasattr(field, "rel") else None
+            field_field__related_model = field.field.related_model
+            if field_rel__related_model and field_field__related_model:
+                related_model = (
+                    field_field__related_model if field_rel__related_model is model_above else field_rel__related_model)
+            else:
+                related_model = field_rel__related_model or field_field__related_model
+
+            return related_model
 
         def get_1relation(model, key, glu, relation, prefetch=False):
             relation = relation.copy()
@@ -303,7 +318,7 @@ def optimize(template_name, for_item, context, queryset=None):
             if hasattr(model, key):
                 field = getattr(model, key)
                 if hasattr(field, "field") and hasattr(field.field, "related_model") and field.field.related_model:
-                    related_model = field.rel.related_model if hasattr(field, "rel") else field.field.related_model
+                    related_model = choose_relation_from_related_models(field=field, model_above=model)
                     prefetch = prefetch or hasattr(field, "rel")
 
                     for key2, value2 in glu.items():
@@ -329,7 +344,7 @@ def optimize(template_name, for_item, context, queryset=None):
                 else:
                     if hasattr(field, "__call__"):
                         result["relations_unknown"].append(relation)
-                        raise Exception(field)
+                        # raise Exception(field)
                     else:
                         result['other']["b"].append(
                             (
