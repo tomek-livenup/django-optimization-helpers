@@ -1,6 +1,6 @@
 class optimize_related(object):
     """
-    from optimization_helper.decorators import optimize_related
+    from optimization_helpers.decorators import optimize_related
     """
 
     def __init__(self, select_related=None, prefetch_related=None, annotate=None):
