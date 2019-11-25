@@ -64,7 +64,7 @@ def optimize_fornode(context, context_variables, template_name):
 
 def optimize(template_name, for_item, context, queryset=None):
     from django.template.loader import get_template
-    from django.template.defaulttags import IfNode, ForNode, SpacelessNode, LoadNode
+    from django.template.defaulttags import IfNode, ForNode, SpacelessNode, LoadNode, WithNode
     from django.template.base import TextNode, VariableNode
     from django.template.loader_tags import IncludeNode, ExtendsNode, BlockNode
 
@@ -159,6 +159,23 @@ def optimize(template_name, for_item, context, queryset=None):
                 # dump_to_json_file(condition_and_children, 'condition_and_children')
                 result["conditions"].append(condition_and_children)
             elif isinstance(node, SpacelessNode):
+                condition_and_children = dict(
+                    condition_text="",
+                    condition_object=None,
+                    children=second_step(node.nodelist, level, conditions_for_level),
+                )
+                globals()["general_result"] = condition_and_children
+                # dump_to_json_file(condition_and_children, 'condition_and_children')
+                result["conditions"].append(condition_and_children)
+            elif isinstance(node, WithNode):
+                for var, filter_expression in node.extra_context.items():
+                    fake_sequence = (
+                        [var],
+                        (filter_expression.token,)
+                    )
+                    # raise Exception(node, var, filter_expression, fake_sequence)
+                    sequences.append(fake_sequence)
+                # lookups_from_filterexpression(lookups, node)
                 condition_and_children = dict(
                     condition_text="",
                     condition_object=None,
