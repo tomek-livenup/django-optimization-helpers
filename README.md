@@ -25,3 +25,12 @@ INSTALLED_APPS = [
 
 TODO
 
+
+## TODO list
+
+- [ ] check multiple ForNode with the same var on level 0 (I think, we can provide filter "|something")
+- [ ] working with endless pagination plugin
+- [ ] better way to initilize (without need to set template name i.e.)
+- [ ] "Usage" part of this documentation
+- [ ] Short description of djang-optimization-helpers
+
