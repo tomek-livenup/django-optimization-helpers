@@ -33,4 +33,8 @@ TODO
 - [ ] better way to initilize (without need to set template name i.e.)
 - [ ] "Usage" part of this documentation
 - [ ] Short description of djang-optimization-helpers
+- [ ] check/see what select_related/prefetch is already there and what we add
+- [ ] showing results from dashboard.json on demand in template
+- [ ] add some related to plugin settings
+- [ ] discover @property (how to?)
 
