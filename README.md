@@ -28,6 +28,7 @@ TODO
 
 ## TODO list
 
+- [x] discover @property
 - [ ] check multiple ForNode with the same var on level 0 (I think, we can provide filter "|something")
 - [ ] working with endless pagination plugin
 - [ ] better way to initilize (without need to set template name i.e.)
@@ -36,5 +37,4 @@ TODO
 - [ ] check/see what select_related/prefetch is already there and what we add
 - [ ] showing results from dashboard.json on demand in template
 - [ ] add some related to plugin settings
-- [ ] discover @property (how to?)
 

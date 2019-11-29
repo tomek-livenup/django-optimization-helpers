@@ -352,7 +352,7 @@ def optimize(template_name, for_item, context, queryset=None):
                                 annotate
                             )
                 else:
-                    if hasattr(field, "__call__"):
+                    if hasattr(field, "__call__") or "<property object" in str(field):
                         result["relations_unknown"].append(relation)
                         # raise Exception(field)
                     else:
@@ -446,40 +446,5 @@ def optimize(template_name, for_item, context, queryset=None):
         # raise Exception(globals()['general_result'])
         return queryset
     else:
-        raise Exception("eee")
+        raise Exception("ForNode not found")
     return queryset
-    """
-    what I need to:
-        condition = dict(conditions=OrderedDict(), nodes=
-        I need tree of conditions as text and as statement
-        I need to find every "print" with dot (.) and also those in statements
-
-        for now we have nothing from my code so:
-            first thing to achieve is:  ...
-
-        before basic fornode we have data so we can get to some point in template and prepare....
-
-        nodes and conditions:
-        v1:
-            - only conditions but as a string
-            - tuple (condition, conditions)
-            - "and" is one condition, "or" means many conditions
-
-        import json;json.dumps(conditions, default=lambda o: o.__dict__)
-
-        problems with recurention
-
-        what next:
-            2019-09-27:
-                - *DONE* we need to save only last result
-                - we need to know what we are looking for: notification
-                - we need to know what kind of object it is (maybe from queryset)
-                - we need have list of notification. ...
-            2019-09-30:
-                - I have main model Notification which match variable 'notification', so I need to method which
-                  will check if children in lookups_map are relations or not
-                - If "id" is one and only children we need to generate info "maybe just use _id"
-            2019-10-07:
-                - lookups from if-s
-    """
-    # raise Exception(conditions)
