@@ -74,8 +74,6 @@ def optimize(template_name, for_item, context, queryset=None, optimize_suffix=No
     from django.template.base import TextNode, VariableNode
     from django.template.loader_tags import IncludeNode, ExtendsNode, BlockNode
 
-    conditions = []
-
     def get_file_name(name):
         return "optimize-{}".format(name) + ("-{}".format(optimize_suffix) if optimize_suffix else "")
 
@@ -279,6 +277,10 @@ def optimize(template_name, for_item, context, queryset=None, optimize_suffix=No
         lookups_map = dict()
         for list_item in lookups:
             current = lookups_map
+            if add_double_underscore_str:
+                list_item = list(list_item)
+                list_item.append("__str__")
+                list_item = tuple(list_item)
             for lookup_item in list_item:
                 if lookup_item not in current:
                     current[lookup_item] = dict()
@@ -356,6 +358,11 @@ def optimize(template_name, for_item, context, queryset=None, optimize_suffix=No
                     to_select = field._optimize_related.get("select_related", "").split("__")
                     to_prefetch = field._optimize_related.get("prefetch_related", "").split("__")
                     to_annotate = field._optimize_related.get("annotate", "").split(",")
+                    if add_double_underscore_str and key == "__str__":
+                        # trick for __str__
+                        to_select = relation[:-1] + to_select if to_select[0] else to_select
+                        to_prefetch = relation[:-1] + to_prefetch if to_prefetch[0] else to_prefetch
+
                     if to_select and to_select[0]:
                         result["relations_to_select"].append(to_select)
                     if to_prefetch and to_prefetch[0]:
@@ -408,6 +415,8 @@ def optimize(template_name, for_item, context, queryset=None, optimize_suffix=No
 
     from django.db.models.query import QuerySet
 
+    add_double_underscore_str = True  # we will add __str__ to end of every lookup to search for @optimize_related
+    conditions = []
     fornode = look_for_fornode(nodelist=get_nodes_from_template_name(template_name))
     queryset = queryset
     if fornode:
