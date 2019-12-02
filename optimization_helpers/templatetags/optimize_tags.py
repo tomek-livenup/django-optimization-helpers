@@ -23,7 +23,7 @@ def dump_to_json_file(given, file_name="dashboard"):
 
 
 @register.simple_tag(takes_context=True)
-def optimize_fornode(context, context_variables, template_name):
+def optimize_fornode(context, context_variables, template_name, optimize_suffix=None):
     def context_queryset(context, context_variables):
         queryset = None
         for var in context_variables.split("."):
@@ -37,7 +37,13 @@ def optimize_fornode(context, context_variables, template_name):
     context_queryset_res = context_queryset(context, context_variables)
     if context_queryset_res:
         queryset = copy.copy(context_queryset_res)
-        queryset_optimized = optimize(template_name=template_name, for_item=None, context=context, queryset=queryset)
+        queryset_optimized = optimize(
+            template_name=template_name,
+            for_item=None,
+            context=context,
+            queryset=queryset,
+            optimize_suffix=optimize_suffix
+        )
         if queryset_optimized:
             # context_queryset_res_2 = context_queryset(context, context_variables)
             # context_queryset_res_2 = queryset_optimized
@@ -62,13 +68,16 @@ def optimize_fornode(context, context_variables, template_name):
     print("OPTIMIZATION {} = {} seconds.".format(context_variables, str(time_end).split(":")[-1]))
 
 
-def optimize(template_name, for_item, context, queryset=None):
+def optimize(template_name, for_item, context, queryset=None, optimize_suffix=None):
     from django.template.loader import get_template
     from django.template.defaulttags import IfNode, ForNode, SpacelessNode, LoadNode, WithNode
     from django.template.base import TextNode, VariableNode
     from django.template.loader_tags import IncludeNode, ExtendsNode, BlockNode
 
     conditions = []
+
+    def get_file_name(name):
+        return "optimize-{}".format(name) + ("-{}".format(optimize_suffix) if optimize_suffix else "")
 
     def look_for_fornode(nodelist):
         for node in nodelist:
@@ -110,13 +119,13 @@ def optimize(template_name, for_item, context, queryset=None):
                         if len(eee) > 2:
                             items.append(fff.strip())
                         else:
-                            dump_to_json_file(given_obj, "given_obj")
+                            dump_to_json_file(given_obj, get_file_name("given_obj"))
                     if hasattr(aaa_object, "text"):
                         items.append(aaa_object.text)
                     else:
                         get_items(aaa_object)
 
-            dump_to_json_file(given_obj)
+            # dump_to_json_file(given_obj, get_file_name("eee"))
 
         items = []
         get_items(condition)
@@ -156,7 +165,7 @@ def optimize(template_name, for_item, context, queryset=None):
                     condition_text="", condition_object=None, children=second_step(nodes2, level, conditions_for_level)
                 )
                 globals()["general_result"] = condition_and_children
-                # dump_to_json_file(condition_and_children, 'condition_and_children')
+                # dump_to_json_file(condition_and_children, get_file_name("condition_and_children"))
                 result["conditions"].append(condition_and_children)
             elif isinstance(node, SpacelessNode):
                 condition_and_children = dict(
@@ -165,7 +174,7 @@ def optimize(template_name, for_item, context, queryset=None):
                     children=second_step(node.nodelist, level, conditions_for_level),
                 )
                 globals()["general_result"] = condition_and_children
-                # dump_to_json_file(condition_and_children, 'condition_and_children')
+                # dump_to_json_file(condition_and_children, get_file_name("condition_and_children"))
                 result["conditions"].append(condition_and_children)
             elif isinstance(node, WithNode):
                 for var, filter_expression in node.extra_context.items():
@@ -182,7 +191,7 @@ def optimize(template_name, for_item, context, queryset=None):
                     children=second_step(node.nodelist, level, conditions_for_level),
                 )
                 globals()["general_result"] = condition_and_children
-                # dump_to_json_file(condition_and_children, 'condition_and_children')
+                # dump_to_json_file(condition_and_children, get_file_name("condition_and_children"))
                 result["conditions"].append(condition_and_children)
             elif isinstance(node, ForNode):
                 if hasattr(node, "sequence"):
@@ -200,7 +209,7 @@ def optimize(template_name, for_item, context, queryset=None):
                     children=second_step(node.nodelist_loop, level, conditions_for_level),
                 )
                 globals()["general_result"] = condition_and_children
-                # dump_to_json_file(condition_and_children, 'condition_and_children')
+                # dump_to_json_file(condition_and_children, get_file_name("condition_and_children"))
                 result["conditions"].append(condition_and_children)
             elif isinstance(node, IfNode):
                 for condition, nodes3 in node.conditions_nodelists:
@@ -234,7 +243,7 @@ def optimize(template_name, for_item, context, queryset=None):
                         )
                         show_me_item_with_dots.append((len(show_me_item_with_dots), condition))
                         globals()["general_result"] = condition_and_children
-                        # dump_to_json_file(condition_and_children, 'condition_and_children')
+                        # dump_to_json_file(condition_and_children, get_file_name("condition_and_children"))
                         result["conditions"].append(condition_and_children)
             elif isinstance(node, (TextNode, LoadNode)):
                 pass
@@ -248,7 +257,7 @@ def optimize(template_name, for_item, context, queryset=None):
 
                 show_me_item_with_dots.append((len(show_me_item_with_dots), node))
                 # raise Exception('fsdadsk')
-            dump_to_json_file(result, "last_one_maybe")
+            dump_to_json_file(result, get_file_name("last_one_maybe"))
         return result
 
     def lookups_from_filterexpression(lookups, node):
@@ -372,10 +381,10 @@ def optimize(template_name, for_item, context, queryset=None):
                 result["other"]["c"].append((str(type(model)), relation))
 
         for lookup, lookups_2 in lookups_map.items():
-            dump_to_json_file(lookups_2, "lookups_2")
+            dump_to_json_file(lookups_2, get_file_name("lookups_2"))
             for key, value in lookups_2.items():
                 get_1relation(model, key, value, [])
-        dump_to_json_file(result, "get_relations")
+        dump_to_json_file(result, get_file_name("get_relations"))
         return result
 
     def selectprefetch_related(queryset, confirmed_relations, prefetch=False):
@@ -418,7 +427,7 @@ def optimize(template_name, for_item, context, queryset=None):
         globals()["general_result"] = dict()
 
         second_step(fornode, level=0, conditions_for_level=[])
-        dump_to_json_file(globals()["general_result"])
+        # dump_to_json_file(globals()["general_result"], get_file_name("aaa"))
 
         lookups_raw = lookups
         # lookups = list(filter(lambda ls: ls[0] == fornode_var, lookups))
@@ -443,10 +452,11 @@ def optimize(template_name, for_item, context, queryset=None):
                 relations=relations,
                 select_related_list=select_related_list,
                 prefetch_related_list=prefetch_related_list,
-            )
+            ),
+            get_file_name("dashboard")
         )
         # raise Exception(show_me_item_with_dots)
-        # dump_to_json_file(show_me_item_with_dots, "show_me_item_with_dots")
+        # dump_to_json_file(show_me_item_with_dots, get_file_name("show_me_item_with_dots"))
 
         # raise Exception(globals()['general_result'])
         return queryset
