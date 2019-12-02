@@ -327,9 +327,14 @@ def optimize(template_name, for_item, context, queryset=None):
 
             if hasattr(model, key):
                 field = getattr(model, key)
-                if hasattr(field, "field") and hasattr(field.field, "related_model") and field.field.related_model:
-                    related_model = choose_relation_from_related_models(field=field, model_above=model)
-                    prefetch = prefetch or hasattr(field, "rel")
+                if((hasattr(field, "field") and hasattr(field.field, "related_model") and field.field.related_model)
+                   or hasattr(field, "related")):
+                    if hasattr(field, "related"):
+                        # django.db.models.fields.related_descriptors.ReverseOneToOneDescriptor
+                        related_model = field.related.field.model
+                    else:
+                        related_model = choose_relation_from_related_models(field=field, model_above=model)
+                        prefetch = prefetch or hasattr(field, "rel")
 
                     for key2, value2 in glu.items():
                         get_1relation(related_model, key2, value2, relation, prefetch=prefetch)
