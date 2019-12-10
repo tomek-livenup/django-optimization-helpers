@@ -1,5 +1,11 @@
 Change log
 ==========
+0.1.4 (2019-12-10)
+----------------
+
+* look_for_fornode() - fix - finding wrong for
+* look_for_fornode() - check - checking if we don't find multiple ForNodes for context_variables set for tag
+
 0.1.3 (2019-12-02)
 ----------------
 

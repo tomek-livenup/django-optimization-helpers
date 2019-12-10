@@ -4,6 +4,7 @@ import json
 from django import template
 from django.conf import settings
 from django.utils.timezone import now
+from django.db.models.query import QuerySet
 
 register = template.Library()
 
@@ -35,12 +36,13 @@ def optimize_fornode(context, context_variables, template_name, optimize_suffix=
 
     time_start = now()
     context_queryset_res = context_queryset(context, context_variables)
-    if context_queryset_res:
+    if isinstance(context_queryset_res, QuerySet):
         queryset = copy.copy(context_queryset_res)
         queryset_optimized = optimize(
             template_name=template_name,
             for_item=None,
             context=context,
+            context_variables=context_variables,
             queryset=queryset,
             optimize_suffix=optimize_suffix
         )
@@ -68,7 +70,7 @@ def optimize_fornode(context, context_variables, template_name, optimize_suffix=
     print("OPTIMIZATION {} = {} seconds.".format(context_variables, str(time_end).split(":")[-1]))
 
 
-def optimize(template_name, for_item, context, queryset=None, optimize_suffix=None):
+def optimize(template_name, for_item, context, context_variables, queryset=None, optimize_suffix=None):
     from django.template.loader import get_template
     from django.template.defaulttags import IfNode, ForNode, SpacelessNode, LoadNode, WithNode
     from django.template.base import TextNode, VariableNode
@@ -78,9 +80,11 @@ def optimize(template_name, for_item, context, queryset=None, optimize_suffix=No
         return "optimize-{}".format(name) + ("-{}".format(optimize_suffix) if optimize_suffix else "")
 
     def look_for_fornode(nodelist):
+        look_for_result = []
         for node in nodelist:
             if isinstance(node, ForNode):
-                return node
+                if str(node.sequence.var) == context_variables:
+                    look_for_result.append(node)
             elif isinstance(node, IfNode):
                 for condition, nodes in node.conditions_nodelists:
                     # conditions.append(
@@ -88,7 +92,11 @@ def optimize(template_name, for_item, context, queryset=None, optimize_suffix=No
                     # )
                     res = look_for_fornode(nodes)
                     if res:
-                        return res
+                        look_for_result.append(res)
+        if len(look_for_result) > 1:
+            raise Exception("Multiple ForNodes with with '{}'".format(context_variables))
+        elif look_for_result:
+            return look_for_result[0]
 
     def get_nodes_from_template_name(template_name):
         tmpl = get_template(template_name)
